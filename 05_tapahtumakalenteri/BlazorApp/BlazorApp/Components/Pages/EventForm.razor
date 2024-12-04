@@ -1,0 +1,102 @@
+﻿@page "/eventform/{EventId:int?}"
+@using BlazorApp.Models
+@inject EventController EventService
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<h3>@(EventToEdit.Id == 0 ? "Add New Event" : "Edit Event")</h3>
+
+<EditForm Model="EventToEdit" OnValidSubmit="HandleSubmit">
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+
+	<div class="mb-3">
+		<label class="form-label">Title</label>
+		<InputText class="form-control" @bind-Value="EventToEdit.Title" />
+	</div>
+
+	<div class="mb-3">
+		<label class="form-label">Start Date</label>
+		<InputDate class="form-control" @bind-Value="EventToEdit.StartDate" />
+	</div>
+
+	<div class="mb-3">
+		<label class="form-label">End Date</label>
+		<InputDate class="form-control" @bind-Value="EventToEdit.EndDate" />
+	</div>
+
+	<div class="mb-3">
+		<label class="form-label">Location</label>
+		<InputText class="form-control" @bind-Value="EventToEdit.Location" />
+	</div>
+
+	<div class="mb-3">
+		<label class="form-label">Category</label>
+		<InputSelect class="form-select" @bind-Value="EventToEdit.CategoryId">
+			<option value="">Select a category</option>
+			@foreach (var category in Categories)
+			{
+				<option value="@category.Id">@category.Name</option>
+			}
+		</InputSelect>
+	</div>
+
+	<div class="mb-3">
+		<label class="form-label">Description</label>
+		<InputSelect class="form-select" @bind-Value="EventToEdit.Description">
+			<option value="">Select a category</option>
+			@foreach (var category in Categories)
+			{
+				<option value="@category.Description">@category.Description</option>
+			}
+		</InputSelect>
+	</div>
+
+	<button type="submit" class="btn btn-primary">Save Event</button>
+</EditForm>
+
+@code {
+	[Parameter] public int? EventId { get; set; }
+	private Event EventToEdit = new Event();
+	private List<Category> Categories = new List<Category>();
+
+	protected override async Task OnInitializedAsync()
+	{
+		// Load categories from the service
+		Categories = await EventService.GetAllCategoriesAsync();
+
+		// If we have an EventId, load the specific event to edit
+		if (EventId.HasValue)
+		{
+			EventToEdit = await EventService.GetEventByIdAsync(EventId.Value);
+		}
+	}
+
+	// Handles form submission for creating or updating an event
+	private async Task HandleSubmit()
+	{
+		if (EventToEdit.Id == 0) // New event
+		{
+			await EventService.AddEventAsync(EventToEdit); // Add event to backend
+		}
+		else // Existing event (edit case)
+		{
+			await EventService.UpdateEventAsync(EventToEdit); // Update event in backend
+		}
+
+		Navigation.NavigateTo("/"); // Redirect after save
+	}
+
+	// Handles deleting an event
+	private async Task DeleteEvent()
+	{
+		if (EventToEdit.Id != 0)
+		{
+			// Delete the event from the backend
+			await EventService.DeleteEventAsync(EventToEdit.Id);
+
+			// After deletion, navigate to the event list
+			Navigation.NavigateTo("/");
+		}
+	}
+}
